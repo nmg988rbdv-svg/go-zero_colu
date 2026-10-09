@@ -1,0 +1,30 @@
+
+
+[server]
+PullPort=":10067"
+HttpPort=":10068"
+
+[Logger]
+Name = "ws-proxy"
+Level = "debug"
+Stacktrace = true
+AddCaller = true
+CallShip = 3
+Mode = "console"
+Json = false
+MaxSize = 0
+MaxAge = 0
+MaxBackup = 0
+Async = false
+Compress = false
+Console = false
+Color = true
+IsReport = false
+
+# gpush 会序列化此字段；即使关闭上报也需要初始化 Level，避免启动时空指针。
+[Logger.ReportConfig]
+Level = "warn"
+
+[etcd]
+endpoints=["etcd:2379"]
+keyPrefix="proxy"

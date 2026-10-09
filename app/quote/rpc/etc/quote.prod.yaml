@@ -1,0 +1,82 @@
+Name: quote.rpc
+ListenOn: 0.0.0.0:20011
+Etcd:
+  Hosts:
+    - columbina-etcd:2379
+  Key: quote.rpc
+WsConf:
+  etcd:
+    Key: proxy
+    Hosts:
+      - columbina-etcd:2379
+  NonBlock: true
+Symbol:
+  - Name: COLU_USDT
+    Id: 1
+    BaseCoin: COLU
+    QuoteCoin: USDT
+    QuoteCoinId: 4
+    BaseCoinId: 1
+    QuoteCoinPrec: 4
+    BaseCoinPrec: 4
+  - Name: ETH_USDT
+    Id: 2
+    BaseCoin: ETH
+    QuoteCoin: USDT
+    QuoteCoinId: 4
+    BaseCoinId: 3
+    QuoteCoinPrec: 4
+    BaseCoinPrec: 4
+Coin:
+  - Name: COLU
+    Id: 1
+    Precision: 4
+  - Name: BTC
+    Id: 2
+    Precision: 4
+  - Name: ETH
+    Id: 3
+    Precision: 4
+  - Name: USDT
+    Id: 4
+    Precision: 4
+
+
+MySQLConf:
+  Host: columbina-mysql
+  Port: 3306
+  Username: columbina
+  Password: columbina
+  Database: trade
+  Charset: utf8mb4
+  MaxIdleConns: 10
+  MaxOpenConns: 50
+  ConnMaxLifetime: 30m
+PulsarConfig:
+  hosts:
+    - columbina-pulsar:6650
+
+RedisConf:
+  Host: columbina-redis:6379
+  Type: node
+  Pass: "123456"
+  PingTimeout: 5s
+
+
+LoggerConfig:
+  level: debug  #日志等级 debug info warn error
+  stacktrace: true #默认为true 在error级别及以上显示堆栈
+  addCaller: true #默认为true  增加调用者信息
+  callerShip: 3 # 默认为3 调用栈深度
+  mode: console #默认为console 输出到控制台  console file
+  json: false #默认为false  是否json格式化
+  fileName:  #可选 file模式参数 输出到指定文件
+  errorFileName:  #可选 file模式参数 错误日志输出到的地方
+  maxSize: 0 #可选 file模式参数 文件大小限制 单位MB
+  maxAge: 0 #可选 file模式参数 文件最大保存时间 单位天
+  maxBackup: 0 #可选 file模式参数 最大的日志数量
+  async: false #默认为false file模式参数 是否异步落盘。
+  compress: false #默认为false file模式参数 是否压缩
+  console: false #默认为false file模式参数 是否同时输出到控制台
+  color: true #默认为false  输出是否彩色 在开发的时候推荐使用。
+  port: 0 #是否开启http热更新日志级别

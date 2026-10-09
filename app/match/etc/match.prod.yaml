@@ -1,0 +1,83 @@
+Name: match.rpc
+ListenOn: 0.0.0.0:20003
+Timeout: 5000
+Mode: dev
+
+Etcd:
+  Hosts:
+    - columbina-etcd:2379
+  Key: match.rpc
+  
+Symbol:
+  - Name: COLU_USDT
+    Id: 1
+    BaseCoin: COLU
+    QuoteCoin: USDT
+    QuoteCoinId: 4
+    BaseCoinId: 1
+    QuoteCoinPrec: 4
+    BaseCoinPrec: 4
+  - Name: ETH_USDT
+    Id: 2
+    BaseCoin: ETH
+    QuoteCoin: USDT
+    QuoteCoinId: 4
+    BaseCoinId: 3
+    QuoteCoinPrec: 4
+    BaseCoinPrec: 4
+
+Coin:
+  - Name: COLU
+    Id: 1
+    Precision: 4
+  - Name: BTC
+    Id: 2
+    Precision: 4
+  - Name: ETH
+    Id: 3
+    Precision: 4
+  - Name: USDT
+    Id: 4
+    Precision: 4
+
+WsConf:
+  etcd:
+    Key: proxy
+    Hosts:
+      - columbina-etcd:2379
+  NonBlock: true
+  Timeout: 10000
+
+etcdRegisterConf:
+  etcdConf:
+    endpoints:
+      - columbina-etcd:2379
+  key: match
+
+PulsarConfig:
+  hosts:
+    - columbina-pulsar:6650
+
+RedisConf:
+  Host: columbina-redis:6379
+  Type: node
+  Pass: "123456"
+  PingTimeout: 5s
+
+LoggerConfig:
+  level: debug
+  stacktrace: true
+  addCaller: true
+  callerShip: 3
+  mode: console
+  json: false
+  fileName:
+  errorFileName:
+  maxSize: 0
+  maxAge: 0
+  maxBackup: 0
+  async: false
+  compress: false
+  console: false
+  color: true
+  port: 0

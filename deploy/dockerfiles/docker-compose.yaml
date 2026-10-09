@@ -1,0 +1,60 @@
+# 业务服务：需先启动 deploy/depend/docker-compose.yaml，并创建外部网络 columbina
+# 构建：在项目根目录执行 make build && docker compose -f deploy/dockerfiles/docker-compose.yaml up -d --build
+services:
+  accountrpc:
+    build:
+      context: ../..
+      dockerfile: deploy/dockerfiles/Dockerfile-accountrpc
+    image: columbina/accountrpc:latest
+    container_name: columbina-accountrpc
+    restart: unless-stopped
+    entrypoint: ["/app/accountrpc", "-f", "/app/account.rpc.yaml"]
+    ports:
+      - "20002:20002"
+    networks:
+      - columbina
+
+  match:
+    build:
+      context: ../..
+      dockerfile: deploy/dockerfiles/Dockerfile-match
+    image: columbina/match:latest
+    container_name: columbina-match
+    restart: unless-stopped
+    entrypoint: ["/app/match", "-f", "/app/match.yaml"]
+    ports:
+      - "20003:20003"
+    networks:
+      - columbina
+
+  quoterpc:
+    build:
+      context: ../..
+      dockerfile: deploy/dockerfiles/Dockerfile-quoterpc
+    image: columbina/quoterpc:latest
+    container_name: columbina-quoterpc
+    restart: unless-stopped
+    entrypoint: ["/app/quoterpc", "-f", "/app/quote.rpc.yaml"]
+    ports:
+      - "20011:20011"
+    networks:
+      - columbina
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/dockerfiles/Dockerfile-gateway
+    image: columbina/gateway:latest
+    container_name: columbina-gateway
+    restart: unless-stopped
+    entrypoint: ["/app/gateway", "-f", "/app/gateway.yaml"]
+    ports:
+      - "8888:8888"
+    networks:
+      - columbina
+
+
+
+networks:
+  columbina:
+    external: true

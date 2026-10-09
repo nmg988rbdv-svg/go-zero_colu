@@ -1,0 +1,308 @@
+syntax = "proto3";
+package account;
+option go_package = "./pb";
+message Empty{}
+import "enum/enum.proto";
+message GetUserAssetReq {
+  //用户id
+  int64  uid = 1;
+  //币中
+  int32 coin_id=2;
+}
+// 用户资产表
+message Asset {
+  // 主键ID
+  int64 id = 10;
+  // 用户ID
+  int64 user_id = 1;
+  // 用户名
+  string username = 2;
+  // 数字货币ID
+  int32 coin_id = 3;
+  // 数字货币名称
+  string coin_name = 4;
+  // 可用余额
+  string available_amount = 5;
+  // 冻结金额
+  string frozen_amount = 6;
+}
+message GetUserAssetResp {
+  Asset asset=1;
+}
+
+message FreezeUserAssetReq{
+  //用户id
+  int64 uid =1;
+  //币种id
+  int32 coin_id=2;
+  //数量
+  string amount=3;
+}
+
+message UnFreezeUserAssetReq{
+  //用户id
+  int64 uid =1;
+  //币种id
+  int32 coin_id=2;
+  //数量
+  string amount=3;
+}
+message  DeductUserAssetReq{
+  //用户id
+  int64 uid =1;
+    //币种id
+  int32 coin_id=2;
+  //数量
+  string amount=3;
+  //是否从冻结中扣除
+  bool is_from_freeze=4;
+}
+message AddUserAssetReq{
+  //用户id
+  int64 uid =1;
+  //币种
+  string coin_name=2;
+  //数量
+  string amount=3;
+}
+
+message GetUserAssetListReq{
+  //用户id
+  int64 uid =1;
+}
+message GetUserAssetListResp{
+    repeated Asset asset_list =1;
+}
+
+message RegisterReq{
+  //用户名
+  string username=1;
+  //密码
+  string password=2;
+  //手机号
+  int64 phone_number=3;
+}
+message RegisterResp{
+  //用户名
+  string username=1;
+  //用户ID
+  int64  uid=2;
+}
+
+// ========== 认证（JWT + Redis 单点登录）==========
+
+// LoginReq 登录请求
+message LoginReq {
+  // 用户名
+  string username = 1;
+  // 密码
+  string password = 2;
+}
+
+// LoginResp 登录响应
+message LoginResp {
+  // 用户ID
+  int64 uid = 1;
+  // 用户名
+  string username = 2;
+  // JWT token
+  string token = 3;
+  // token 过期时间（Unix 秒）
+  int64 expire_time = 4;
+}
+
+// LoginOutReq 登出请求
+message LoginOutReq {
+  // JWT token（必填）
+  string token = 1;
+  // 用户ID（可选，以 token 解析结果为准）
+  int64 uid = 2;
+}
+
+// ValidateTokenReq 验证 token 请求
+message ValidateTokenReq {
+  // JWT token
+  string token = 1;
+}
+
+// ValidateTokenResp 验证 token 响应
+message ValidateTokenResp {
+  // 用户ID
+  int64 uid = 1;
+  // 用户名
+  string username = 2;
+}
+
+service AccountService {
+  //获取用户指定币种的资产。
+  rpc GetUserAssetByCoin(GetUserAssetReq)returns(GetUserAssetResp);
+  //获取用户所有币种资产。
+  rpc GetUserAssetList(GetUserAssetListReq)returns(GetUserAssetListResp);
+  //冻结用户资产。
+  rpc FreezeUserAsset(FreezeUserAssetReq)returns(Empty);
+  //解冻用户资产
+  rpc UnFreezeUserAsset(UnFreezeUserAssetReq)returns(Empty);
+  //扣减用户资产
+  rpc DeductUserAsset(DeductUserAssetReq)returns(Empty);
+  //增加用户资产
+  rpc AddUserAsset(AddUserAssetReq)returns(Empty);
+  //注册
+  rpc Register(RegisterReq)returns(RegisterResp);
+  //登录
+  rpc Login(LoginReq) returns (LoginResp);
+  //登出
+  rpc LoginOut(LoginOutReq) returns (Empty);
+  //验证 token 是否有效
+  rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenResp);
+}
+
+message OrderEmpty{}
+// 下单请求
+message CreateOrderReq {
+
+  // 用户ID
+  int64 user_id = 3;
+  // 交易对ID
+  int32 symbol_id = 4;
+  // 交易对名称
+  string symbol_name = 5;
+  // 下单数量
+  string base_amount = 6;
+  // 价格
+  string price = 7;
+  // 金额
+  string quote_amount = 13;
+  // 方向 - 1: 买, 2: 卖
+  commonEnum.Side side = 8;
+  // 订单类型 - 1: 市价单, 2: 限价单
+  commonEnum.OrderType order_type = 10;
+  //订单id用于补偿定位订单
+  string order_id=14;
+}
+
+
+message GetOrderListByUserReq {
+  //用户id
+  int64 user_id=1;
+  //订单类型
+  repeated commonEnum.OrderStatus status_list=2;
+  //分页数据主键ID
+  int64 id=3;
+  //分页数据偏移量
+  int64 page_size=4;
+  //交易对，空则不过滤
+  string symbol_name=5;
+
+}
+// 订单实体
+message Order {
+  // 自增ID
+  int64 id = 1;
+  // 订单id
+  string order_id = 2;
+  // 用户ID
+  int64 user_id = 3;
+  // 交易对ID
+  int32 symbol_id = 4;
+  // 交易对名称
+  string symbol_name = 5;
+  // 下单数量
+  string base_amount = 6;
+  // 价格
+  string price = 7;
+  // 金额
+  string quote_amount = 17;
+  // 方向 - 1: 买, 2: 卖
+  commonEnum.Side side = 8;
+  // 状态 - 1: 新订单, 2: 部分成交, 3: 全部成交, 4: 撤销
+  commonEnum.OrderStatus status = 9;
+  // 订单类型 - 1: 市价单, 2: 限价单
+  commonEnum.OrderType order_type = 10;
+  //成交数量
+  string filled_base_amount =14;
+  //成交金额
+  string filled_quote_amount=15;
+  // 成交均价
+  string filled_avg_price = 11;
+  // 创建时间
+  int64 created_at = 12;
+  // 修改时间
+  int64 updated_at = 13;
+
+}
+
+message GetOrderListByUserResp{
+  repeated Order order_list =1;
+  int64 total=2;
+}
+
+message FreezeUserAssetResp{}
+
+message CancelOrderReq{
+  // 订单ID
+  string order_id = 1;
+  // 用户ID
+  int64 uid = 2;
+  // 交易对名称
+  string symbol_name = 3;
+}
+message UpdateOrderStatusReq{
+  //订单id
+  string order_id=1;
+  //订单状态
+  commonEnum.OrderStatus order_status = 2;
+}
+
+
+
+// 订单详情信息
+message OrderInfo {
+  // 序号 主键 雪花算法生成
+  int64 id = 1;
+  // 订单号
+  string order_id = 2;
+  // 用户id
+  int64 user_id = 3;
+  // 交易对ID
+  int32 symbol_id = 4;
+  // 交易对名称
+  string symbol_name = 5;
+  // 下单数量
+  string base_amount = 6;
+  // 价格
+  string price = 7;
+  // 方向 1:买, 2:卖
+  commonEnum.Side side = 8;
+  // 金额
+  string quote_amount = 9;
+  // 状态
+  commonEnum.OrderStatus status = 10;
+  // 订单类型 1:市价单, 2:限价单
+  commonEnum.OrderType order_type = 11;
+  // 成交数量
+  string filled_base_amount = 12;
+  // 未成交数量
+  string un_filled_base_amount = 13;
+  // 成交均价
+  string filled_avg_price = 14;
+  // 成交金额
+  string filled_quote_amount = 15;
+  // 未成交金额
+  string un_filled_quote_amount = 16;
+  // 创建时间
+  int64 created_at = 17;
+  // 修改时间
+  int64 updated_at = 18;
+}
+
+service OrderService {
+  //创建订单
+  rpc CreateOrder(CreateOrderReq)returns(OrderEmpty);
+  //获取用户订单列表
+  rpc GetOrderList(GetOrderListByUserReq)returns(GetOrderListByUserResp);
+  //取消订单
+  rpc CancelOrder(CancelOrderReq)returns(OrderEmpty);
+
+}
+
+

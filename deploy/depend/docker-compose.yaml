@@ -1,0 +1,145 @@
+# 宿主机映射端口（nginx 保持 80）。容器内端口不变，业务容器通过服务名访问仍用默认端口。
+# pulsar 16650/18080 | pulsar-manager 19527/17750 | mysql 13306 | redis 16379
+# etcd 12379/12380 | ws-proxy 20067/20068 | ws-socket 19992
+services:
+  pulsar:
+    image: registry.cn-hangzhou.aliyuncs.com/zhengqing/pulsar:3.1.2  # 原镜像`apachepulsar/pulsar:3.1.2`
+    container_name: columbina-pulsar
+    restart: unless-stopped
+    #    volumes:
+    #      - "./pulsar/data:/pulsar/data"
+    #      - "./pulsar/conf:/pulsar/conf"
+    environment: # 设置环境变量,相当于docker run命令中的-e
+      TZ: Asia/Shanghai
+      LANG: en_US.UTF-8
+      BOOKIE_MEM: -Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
+    command: >
+      /bin/bash -c 
+      "bin/apply-config-from-env.py conf/standalone.conf && exec bin/pulsar standalone --advertised-address pulsar"
+    ports:
+      - "16650:6650"
+      - "18080:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '3.50'
+    networks:
+      - columbina
+  #/deploy/depend/pulsar/conf 是相对docker-compose.yaml文件的位置的。
+  dashboard:
+    image: registry.cn-hangzhou.aliyuncs.com/zhengqing/pulsar-manager:v0.2.0
+    container_name: columbina-pulsar-manager
+    ports:
+      - "19527:9527"
+      - "17750:7750"
+    depends_on:
+      - pulsar
+    links:
+      - pulsar
+    environment:
+      SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
+    networks:
+      - columbina
+  nginx:
+    image: registry.cn-hangzhou.aliyuncs.com/zhengqing/nginx:1.21.1           # 镜像`nginx:1.21.1`
+    container_name: columbina-nginx
+    restart: unless-stopped                                       # 指定容器退出后的重启策略为始终重启，但是不考虑在Docker守护进程启动时就已经停止了的容器
+    volumes: # 数据卷挂载路径设置,将本机目录映射到容器目录
+      - "./nginx/conf/nginx.conf:/etc/nginx/nginx.conf"
+      - "./nginx/conf/conf.d/api.conf:/etc/nginx/conf.d/api.conf"
+      - "./nginx/html:/usr/share/nginx/html"
+      - "./nginx/log:/var/log/nginx"
+    environment: # 设置环境变量,相当于docker run命令中的-e
+      TZ: Asia/Shanghai
+      LANG: en_US.UTF-8
+    ports: # 映射端口
+      - "80:80"
+    networks:
+      - columbina
+  mysql:
+    image: mysql:8.4
+    container_name: columbina-mysql
+    hostname: mysql
+    restart: unless-stopped
+    ports:
+      - "13306:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: trade
+      MYSQL_USER: columbina
+      MYSQL_PASSWORD: columbina
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+    networks:
+      - columbina
+  redis:
+    image: registry.cn-hangzhou.aliyuncs.com/zhengqing/redis:7.0.5                    # 镜像'redis:7.0.5'
+    container_name: columbina-redis
+    restart: unless-stopped                                                                   # 指定容器退出后的重启策略为始终重启，但是不考虑在Docker守护进程启动时就已经停止了的容器
+    #command: redis-server /etc/redis/redis.conf   # 启动redis服务，默认无密码
+    command: redis-server --requirepass 123456 --appendonly yes # 启动redis服务并添加密码为：123456,并开启redis持久化配置
+    environment: # 设置环境变量,相当于docker run命令中的-e
+      TZ: Asia/Shanghai
+      LANG: en_US.UTF-8
+    volumes: # 数据卷挂载路径设置,将本机目录映射到容器目录
+      - "./redis/data:/data"
+      - "./redis/config/redis.conf:/etc/redis/redis.conf"  # `redis.conf`文件内容`http://download.redis.io/redis-stable/redis.conf`
+    ports: # 映射端口
+      - "16379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "123456", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - columbina
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.7                #https://etcd.io/docs/v2.3/docker_guide/
+    container_name: columbina-etcd
+    restart: unless-stopped
+    command: /usr/local/bin/etcd --data-dir=/etcd-data --name node1 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://etcd:2379 --log-level info --logger zap --log-outputs stderr --listen-peer-urls http://0.0.0.0:2380 --initial-advertise-peer-urls http://0.0.0.0:2380  --initial-cluster node1=http://0.0.0.0:2380
+    ports: # 映射端口
+      - "12379:2379"
+      - "12380:2380"
+    networks:
+      - columbina
+  wsproxy:
+    build:
+      dockerfile: ./ws/proxy/Dockerfile
+    container_name: columbina-ws-proxy
+    restart: unless-stopped
+    entrypoint: ["/app/proxy","-config","/app/config.toml"]
+    ports: # 映射端口
+      - "20067:10067"
+      - "20068:10068"
+    volumes: # 数据卷挂载路径设置,将本机目录映射到容器目录
+      - "./ws/proxy/config-deploy.toml:/app/config.toml"
+    networks:
+      - columbina
+  wssocket:
+    build:
+      dockerfile: ./ws/socket/Dockerfile
+    container_name: columbina-ws-socket
+    restart: unless-stopped
+    entrypoint: [ "/app/socket","-config","/app/config.toml" ]
+    ports: # 映射端口
+      - "19992:9992"
+    volumes: # 数据卷挂载路径设置,将本机目录映射到容器目录
+      - "./ws/socket/config-deploy.toml:/app/config.toml"
+    networks:
+      - columbina
+networks:
+  columbina:
+    external: true
